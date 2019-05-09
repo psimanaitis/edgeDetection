@@ -17,15 +17,27 @@ Show_grayscale(with_1_stride)
 function edges = Calculate_edges(image, stride)
     %Padding is used because we do not want to lose resolution if stride == 1
     image = Pad_image(image);
-    horizontal_edge = Convolute_image(image, "horizontal", stride);
-    vertical_edge = Convolute_image(image, "vertical", stride);
+    horizontal_kernel = [1 0 -1
+                         2 0 -2
+                         1 0 -1];
+    horizontal_edge = Convolute_image(image, horizontal_kernel, stride);
+    
+    vertical_kernel = [1  2  1
+                       0  0  0
+                      -1 -2 -1];
+    vertical_edge = Convolute_image(image, vertical_kernel , stride);
     edges = Normalize(sqrt(horizontal_edge .^2 + vertical_edge .^2));
 end
 
 function downsampled_image = Downsample(image_to_downsample, stride)
     %Using padding, so that dimensions of 2-strided and downsampled images would match
     image_to_downsample = Pad_image(image_to_downsample);
-    downsampled_image = Convolute_image(image_to_downsample, "pool", stride);
+    %Using 3x3 pool because otherwise dimension may not match with
+        %2-strided image
+    pool_kernel = [ 1 1 1
+                    1 1 1
+                    1 1 1];
+    downsampled_image = Convolute_image(image_to_downsample, pool_kernel, stride);
     downsampled_image = Normalize(downsampled_image);
 end
 
@@ -61,28 +73,8 @@ function [] = Show_grayscale(image)
 end
 
 function convolution = Convolute_image(image, kernel, stride)
-    switch kernel
-        case "blur"
-            conv = [1 2 1
-                    2 4 2
-                    1 2 1];
-        case "horizontal"
-            conv = [1 0 -1
-                    2 0 -2
-                    1 0 -1];
-        case "vertical"
-            conv = [1  2  1
-                    0  0  0
-                   -1 -2 -1];
-        %Using 3x3 pool because otherwise dimension may not match with
-        %2-strided image
-        case "pool"
-            conv = [1 1 1
-                    1 1 1
-                    1 1 1];
-    end
     [height, width, ~] = size(image);
-    [kernel_size, ~] = size(conv);
+    [kernel_size, ~] = size(kernel);
     %new dimensions formula is: (length - filter length) / stride + 1
     amount_of_height_convolutions = floor((height - kernel_size) / stride) + 1;
     amount_of_width_convolutions = floor((width - kernel_size) / stride) + 1;
@@ -92,11 +84,9 @@ function convolution = Convolute_image(image, kernel, stride)
     for row = 1:kernel_size
         for col = 1:kernel_size
             %-1 + parameter, because Matlab arrays start for 1
-            convolution = convolution + conv(row, col) * image(row:stride:last_starting_height_element - 1 + row, col:stride:last_starting_width_element - 1 + col,:);
+            convolution = convolution + kernel(row, col) * image(row:stride:last_starting_height_element - 1 + row, col:stride:last_starting_width_element - 1 + col,:);
         end
     end
-     % when kernel members sum is bigger then its size we have to decrease
-     % final result so we would avoid increase in power
-    convolution = convolution / ((sum(conv,'all') - numel(conv)) + 1);
+    convolution = convolution / ((sum(kernel,'all') - numel(kernel)) + 1);
 end
 
