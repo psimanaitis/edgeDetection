@@ -95,12 +95,8 @@ function convolution = Convolute_image(image, kernel, stride)
             convolution = convolution + conv(row, col) * image(row:stride:last_starting_height_element - 1 + row, col:stride:last_starting_width_element - 1 + col,:);
         end
     end
-    switch kernel
-        case "blur"
-            convolution = convolution / 16;
-        case "pool"
-            %avg pool
-            convolution = convolution / 9;
-    end
+     % when kernel members sum is bigger then its size we have to decrease
+     % final result so we would avoid increase in power
+    convolution = convolution / ((sum(conv,'all') - numel(conv)) + 1);
 end
 
