@@ -87,6 +87,9 @@ function convolution = Convolute_image(image, kernel, stride)
             convolution = convolution + kernel(row, col) * image(row:stride:last_starting_height_element - 1 + row, col:stride:last_starting_width_element - 1 + col,:);
         end
     end
-    convolution = convolution / ((sum(kernel,'all') - numel(kernel)) + 1);
+    kernel_sum = sum(kernel,'all');
+    if kernel_sum
+        convolution = convolution /kernel_sum;
+    end
 end
 
